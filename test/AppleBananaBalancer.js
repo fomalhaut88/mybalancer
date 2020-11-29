@@ -2,100 +2,77 @@ const AppleBananaBalancer = artifacts.require("AppleBananaBalancer")
 
 contract("AppleBananaBalancer", (accounts) => {
     let [alice, bob] = accounts
-    let contractInstance
+    let contractInstance = null
 
     beforeEach(async () => {
         contractInstance = await AppleBananaBalancer.new()
 
-        let value = 0
-        value = (await contractInstance.estimateChargeApple(25)).toNumber()
-        await contractInstance.chargeApple(25, {from: alice, value: value})
-
-        value = (await contractInstance.estimateChargeBanana(50)).toNumber()
-        await contractInstance.chargeBanana(50, {from: alice, value: value})
-
-        value = (await contractInstance.estimateChargeBanana(31)).toNumber()
-        await contractInstance.chargeBanana(31, {from: bob, value: value})
+        await contractInstance.charge({from: alice, value: web3.utils.toWei('700', 'micro')})
+        await contractInstance.charge({from: bob, value: web3.utils.toWei('1300', 'micro')})
     })
 
     it("Test Basic", async () => {
-        const apple = await contractInstance.getApple({from: alice})
-        assert.equal(apple, 25)
+        const totalApple = (await contractInstance.getTotalApple({from: alice})).toNumber()
+        assert.equal(totalApple, 2000)
 
-        const banana = await contractInstance.getBanana({from: alice})
-        assert.equal(banana, 50)
+        const totalBanana = (await contractInstance.getTotalBanana({from: alice})).toNumber()
+        assert.equal(totalBanana, 2000)
 
-        const totalApple = await contractInstance.getTotalApple({from: alice})
-        assert.equal(totalApple, 25)
-
-        const totalBanana = await contractInstance.getTotalBanana({from: alice})
-        assert.equal(totalBanana, 81)
-
-        const capitalization = await contractInstance.getCapitalization({from: alice})
-        assert.equal(capitalization, 45000000000000)
+        const capitalization = (await contractInstance.getCapitalization({from: alice})).toNumber()
+        assert.equal(capitalization, web3.utils.toWei('2000', 'micro'))
     })
 
     it("Test Charge", async () => {
         const balanceOld = await web3.eth.getBalance(bob)
+        const appleOld = (await contractInstance.getTotalApple({from: bob})).toNumber()
+        const capitalizationOld = (await contractInstance.getCapitalization({from: bob})).toNumber()
 
-        const apple = 15
-
-        const bobAppleOld = (await contractInstance.getApple({from: bob})).toNumber()
-        const totalAppleOld = (await contractInstance.getTotalApple({from: bob})).toNumber()
-
-        const appleValue = (await contractInstance.estimateChargeApple(apple, {from: bob})).toNumber()
-        await contractInstance.chargeApple(apple, {from: bob, value: appleValue})
-
-        const bobAppleNew = (await contractInstance.getApple({from: bob})).toNumber()
-        const totalAppleNew = (await contractInstance.getTotalApple({from: bob})).toNumber()
+        const value = web3.utils.toWei('100', 'micro')
+        await contractInstance.charge({from: bob, value: value})
 
         const balanceNew = await web3.eth.getBalance(bob)
+        const appleNew = (await contractInstance.getTotalApple({from: bob})).toNumber()
+        const capitalizationNew = (await contractInstance.getCapitalization({from: bob})).toNumber()
 
-        assert.equal(bobAppleNew, bobAppleOld + apple)
-        assert.equal(totalAppleNew, totalAppleOld + apple)
-
-        // console.log(balanceOld, balanceNew, appleValue)
+        assert.equal(capitalizationNew, capitalizationOld + parseInt(value))
+        assert.equal(appleNew, appleOld + 100)
         assert.ok(balanceNew < balanceOld)
     })
 
     it("Test Withdraw", async () => {
         const balanceOld = await web3.eth.getBalance(bob)
+        const appleOld = (await contractInstance.getTotalApple({from: bob})).toNumber()
+        const capitalizationOld = (await contractInstance.getCapitalization({from: bob})).toNumber()
 
-        const banana = 15
-
-        const bobBananaOld = (await contractInstance.getBanana({from: bob})).toNumber()
-        const totalBananaOld = (await contractInstance.getTotalBanana({from: bob})).toNumber()
-
-        const bananaValue = (await contractInstance.estimateWithdrawBanana(banana, {from: bob})).toNumber()
-        await contractInstance.withdrawBanana(banana, {from: bob, value: 0})
-
-        const bobBananaNew = (await contractInstance.getBanana({from: bob})).toNumber()
-        const totalBananaNew = (await contractInstance.getTotalBanana({from: bob})).toNumber()
+        const value = web3.utils.toWei('100', 'micro')
+        await contractInstance.withdraw(value, {from: bob})
 
         const balanceNew = await web3.eth.getBalance(bob)
+        const appleNew = (await contractInstance.getTotalApple({from: bob})).toNumber()
+        const capitalizationNew = (await contractInstance.getCapitalization({from: bob})).toNumber()
 
-        assert.equal(bobBananaNew, bobBananaOld - banana)
-        assert.equal(totalBananaNew, totalBananaOld - banana)
-
-        // console.log(balanceOld, balanceNew, bananaValue)
+        assert.equal(capitalizationNew, capitalizationOld - parseInt(value))
+        assert.equal(appleNew, appleOld - 100)
         // assert.ok(balanceNew > balanceOld)
     })
 
     it("Test Exchange", async () => {
-        const banana = 11
+        const banana = 100
 
-        const bobAppleOld = (await contractInstance.getApple({from: bob})).toNumber()
-        const bobBananaOld = (await contractInstance.getBanana({from: bob})).toNumber()
+        const appleOld = (await contractInstance.getTotalApple({from: bob})).toNumber()
+        const bananaOld = (await contractInstance.getTotalBanana({from: bob})).toNumber()
 
-        const apple = (await contractInstance.estimateAppleForBanana(banana, {from: bob})).toNumber()
+        const apple = (await contractInstance.estimateAppleInBanana(banana, {from: bob})).toNumber()
         assert.ok(apple > 0)
 
-        await contractInstance.exchangeBananaForApple(banana, {from: bob, value: 0})
+        const value = (await contractInstance.estimateValueOfBanana(banana, {from: bob})).toNumber()
 
-        const bobAppleNew = (await contractInstance.getApple({from: bob})).toNumber()
-        const bobBananaNew = (await contractInstance.getBanana({from: bob})).toNumber()
+        await contractInstance.exchangeBananaForApple(banana, {from: bob, value: value / 1000})
 
-        assert.equal(bobAppleNew, bobAppleOld + apple)
-        assert.equal(bobBananaNew, bobBananaOld - banana)
+        const appleNew = (await contractInstance.getTotalApple({from: bob})).toNumber()
+        const bananaNew = (await contractInstance.getTotalBanana({from: bob})).toNumber()
+
+        assert.equal(appleNew, appleOld + apple)
+        assert.equal(bananaNew, bananaOld - banana)
     })
 })

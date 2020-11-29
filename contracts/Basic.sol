@@ -1,70 +1,60 @@
 pragma solidity >=0.5.0 <0.6.0;
 
 import "./Math.sol";
+import "./Ownable.sol";
 
 
-contract Basic is Math {
+/// @title Basic logic for apple and banana
+contract Basic is Math, Ownable {
     uint internal coef = 10**24;
 
     uint public totalApple = 0;
     uint public totalBanana = 0;
 
-    mapping (address => uint) public appleMap;
-    mapping (address => uint) public bananaMap;
-
-
-    /* Get */
-
-    function getApple() public view returns (uint) {
-        return appleMap[msg.sender];
-    }
-
-    function getBanana() public view returns (uint) {
-        return bananaMap[msg.sender];
-    }
-
+    /// @notice Gets the total number of apple
+    /// @return The number of apple
     function getTotalApple() public view returns (uint) {
         return totalApple;
     }
 
+    /// @notice Gets the total number of banana
+    /// @return The number of banana
     function getTotalBanana() public view returns (uint) {
         return totalBanana;
     }
 
+    /// @notice Gets the total capitalization of all apples and bananas
+    /// @return The capitalization of all apples and bananas
     function getCapitalization() public view returns (uint) {
-        return _calcCapitalization(getTotalApple(), getTotalBanana());
+        return _calcCapitalization(totalApple, totalBanana);
     }
 
-    function _calcCapitalization(uint _totalApple, uint _totalBanana) internal view returns (uint) {
-        require(_totalApple >= 0);
-        require(_totalBanana >= 0);
-        return sqrt(_totalApple * _totalBanana * coef);
+    /// @dev Calculates capitalization by given number of apples and bananas
+    function _calcCapitalization(uint _countApple, uint _countBanana) internal view returns (uint) {
+        require(_countApple >= 0);
+        require(_countBanana >= 0);
+        return sqrt(_countApple * _countBanana * coef);
     }
 
-
-    /* Increment and decrement */
-
-    function _incApple(address _owner, uint _apple) internal {
-        appleMap[_owner] += _apple;
+    /// @dev Increments apple
+    function _incApple(uint _apple) internal {
         totalApple += _apple;
     }
 
-    function _decApple(address _owner, uint _apple) internal {
+    /// @dev Decrements apple
+    function _decApple(uint _apple) internal {
         require(totalApple >= _apple);
-        require(appleMap[_owner] >= _apple);
-        appleMap[_owner] -= _apple;
         totalApple -= _apple;
     }
 
-    function _incBanana(address _owner, uint _banana) internal {
-        bananaMap[_owner] += _banana;
+    /// @dev Increments banana
+    function _incBanana(uint _banana) internal {
         totalBanana += _banana;
     }
 
-    function _decBanana(address _owner, uint _banana) internal {
+    /// @dev Decrements banana
+    function _decBanana(uint _banana) internal {
         require(totalBanana >= _banana);
-        require(bananaMap[_owner] >= _banana);
-        bananaMap[_owner] -= _banana;
         totalBanana -= _banana;
     }
 }
