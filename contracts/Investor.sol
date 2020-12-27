@@ -14,29 +14,10 @@ contract Investor is Basic {
     event Charge(address, uint);
     event Withdraw(address, uint);
 
-
     /// @notice Shows investment of investor given as msg.sender
     /// @return The value of investment
-    function showInvestment() public view returns (uint) {
+    function showInvestment() external view returns (uint) {
         return investorToValue[msg.sender];
-    }
-
-    /// @notice Adds investment to investor
-    /// @param _investor Address of the investor
-    /// @param _value The value of investment
-    function _createInvestment(address payable _investor, uint _value) internal {
-        if (investorToValue[_investor] == 0) {
-            investors.push(_investor);
-        }
-        investorToValue[_investor] += _value;
-    }
-
-    /// @notice Removes investment from investor
-    /// @param _investor Address of the investor
-    /// @param _value The value of investment
-    function _deleteInvestment(address payable _investor, uint _value) internal {
-        require(investorToValue[_investor] >= _value);
-        investorToValue[_investor] -= _value;
     }
 
     /// @notice Shows the investment for charge (value) and the corresponding number of apple and banana
@@ -61,7 +42,7 @@ contract Investor is Basic {
 
     /// @notice Invests into apples and bananas
     function charge() external payable {
-        (uint value, uint apple, uint banana) =  showCharge(msg.value);
+        (uint value, uint apple, uint banana) = showCharge(msg.value);
         _incApple(apple);
         _incBanana(banana);
         _createInvestment(msg.sender, value);
@@ -88,8 +69,7 @@ contract Investor is Basic {
             if ((totalApple == 0) && (totalBanana == 0)) {
                 apple = banana = sqrt(_value * _value / coef);
             } else {
-                apple = 0;
-                banana = 0;
+                apple = banana = 0;
             }
         }
     }
@@ -102,6 +82,20 @@ contract Investor is Basic {
     /// @dev Estimates the value to withdraw by given apple and banana
     function _estimateWithdraw(uint _apple, uint _banana) internal view returns (uint) {
         return getCapitalization() - _calcCapitalization(totalApple - _apple, totalBanana - _banana);
+    }
+
+    /// @dev Adds investment to investor
+    function _createInvestment(address payable _investor, uint _value) internal {
+        if (investorToValue[_investor] == 0) {
+            investors.push(_investor);
+        }
+        investorToValue[_investor] += _value;
+    }
+
+    /// @dev Removes investment from investor
+    function _deleteInvestment(address payable _investor, uint _value) internal {
+        require(investorToValue[_investor] >= _value);
+        investorToValue[_investor] -= _value;
     }
 
     /// @dev Sends dividends from given value to all investors accorting to their investments
